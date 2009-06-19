@@ -79,7 +79,7 @@ public class TrollyProvider extends ContentProvider {
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
                     + newVersion + ", which will destroy all old data");
-            db.execSQL("DROP TABLE IF EXISTS notes");
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
             onCreate(db);
         }
     }
@@ -237,8 +237,8 @@ public class TrollyProvider extends ContentProvider {
 
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(Trolly.AUTHORITY, "trolly", ITEMS);
-        sUriMatcher.addURI(Trolly.AUTHORITY, "trolly/#", ITEM_ID);
+        sUriMatcher.addURI(Trolly.AUTHORITY, "shoppinglist", ITEMS);
+        sUriMatcher.addURI(Trolly.AUTHORITY, "shoppinglist/#", ITEM_ID);
 
         sProjectionMap = new HashMap<String, String>();
         sProjectionMap.put(ShoppingList._ID, ShoppingList._ID);

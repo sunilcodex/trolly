@@ -2,4 +2,10 @@
 <resources>
     <string name="hello">Hello World, Trolly!</string>
     <string name="app_name">Trolly</string>
+    
+    <string name="insert_item">Insert item</string>
+    <string name="checkout">Checkout</string>
+    <string name="dialog_insert_hint">item</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
 </resources>
