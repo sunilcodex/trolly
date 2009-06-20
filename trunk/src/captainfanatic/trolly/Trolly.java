@@ -4,13 +4,12 @@ import captainfanatic.provider.Trolly.ShoppingList;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -23,22 +22,52 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.EditText;
+import android.widget.Filterable;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class Trolly extends ListActivity {
 	
-/**
- * TrollyBinder view binder for simplecursoradapter
- * <P>Allows crossing off and fading out of list items.</P>
- * @author Ben
- *
- */
-	private class TrollyBinder implements ViewBinder {
+	/**
+	 * TrollyAdapter allows crossing items off the list and filtering
+	 * on user text input.
+	 * @author Ben
+	 *
+	 */
+	private class TrollyAdapter extends SimpleCursorAdapter implements Filterable {
+
+		private ContentResolver mContent;   
+		
+		public TrollyAdapter(Context context, int layout, Cursor c,
+				String[] from, int[] to) {
+			super(context, layout, c, from, to);
+			mContent = context.getContentResolver();
+		}
+		
 		@Override
-		public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+        public Cursor runQueryOnBackgroundThread(CharSequence constraint) {
+            if (getFilterQueryProvider() != null) {
+                return getFilterQueryProvider().runQuery(constraint);
+            }
+
+            StringBuilder buffer = null;
+            String[] args = null;
+            if (constraint != null) {
+                buffer = new StringBuilder();
+                buffer.append("UPPER(");
+                buffer.append(ShoppingList.ITEM);
+                buffer.append(") GLOB ?");
+                args = new String[] { "*" + constraint.toString().toUpperCase() + "*" };
+            }
+
+            return mContent.query(ShoppingList.CONTENT_URI, PROJECTION,
+                    buffer == null ? null : buffer.toString(), args,
+                    null);
+        }
+
+		@Override
+		public void bindView(View view, Context context, Cursor cursor) {
 			TextView item = (TextView)view.findViewById(R.id.item);
 			item.setText(cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM)));
 			switch(cursor.getInt(cursor.getColumnIndex(ShoppingList.STATUS))){
@@ -55,7 +84,6 @@ public class Trolly extends ListActivity {
 				item.setTextColor(Color.GRAY);
 				break;
 			}
-			return true;
 		}
 	}
 	
@@ -81,12 +109,13 @@ public class Trolly extends ListActivity {
   //Use private members for dialog textview to prevent weird persistence problem
 	private EditText mDialogEdit;
 	private View mDialogView;
+
+	private Cursor mCursor;
 	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 
         // If no data was given in the intent (because we were started
         // as a MAIN activity), then use our default content provider.
@@ -95,18 +124,16 @@ public class Trolly extends ListActivity {
             intent.setData(ShoppingList.CONTENT_URI);
         }
 
+        setContentView(R.layout.trolly);  
         // Inform the list we provide context menus for items
         getListView().setOnCreateContextMenuListener(this);
         
-        // Perform a managed query. The Activity will handle closing and requerying the cursor
-        // when needed.
-        Cursor cursor = managedQuery(getIntent().getData(), PROJECTION, null, null,
+        mCursor = managedQuery(getIntent().getData(), PROJECTION, null, null,
                 ShoppingList.DEFAULT_SORT_ORDER);
 
         // Used to map notes entries from the database to views
-        SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.shoppinglist_item, cursor,
+        TrollyAdapter adapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
                 new String[] { ShoppingList.ITEM}, new int[] { R.id.item});
-        adapter.setViewBinder(new TrollyBinder());
         setListAdapter(adapter);
     }
     
@@ -155,10 +182,8 @@ public class Trolly extends ListActivity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
 		menu.add(0, MENU_ITEM_INSERT, 0, R.string.insert_item)
-        .setShortcut('3', 'a')
         .setIcon(android.R.drawable.ic_menu_add);
 		menu.add(0, MENU_ITEM_CHECKOUT, 0, R.string.checkout)
-        .setShortcut('3', 'a')
         .setIcon(android.R.drawable.ic_media_next);
 		return true;
 	}
@@ -171,6 +196,10 @@ public class Trolly extends ListActivity {
         	showDialog(DIALOG_INSERT);
         	mDialogEdit.setText("");
             return true;
+        case MENU_ITEM_CHECKOUT:
+        	//Change all items from in trolley to off list
+        	checkout();
+        	return true;
         }
 		return super.onOptionsItemSelected(item);
 	}
@@ -190,7 +219,7 @@ public class Trolly extends ListActivity {
                     	/* User clicked OK so do some stuff */
                 		ContentValues values = new ContentValues();
                         values.put(ShoppingList.ITEM, mDialogEdit.getText().toString());
-                		Uri uri = getContentResolver().insert(ShoppingList.CONTENT_URI,values);
+                		getContentResolver().insert(ShoppingList.CONTENT_URI,values);
                 	}
                 })
                 .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
@@ -204,5 +233,29 @@ public class Trolly extends ListActivity {
 		return null;
 	}
     
-    
+	/**
+	 * Change all items marked as "in trolley" to "off list"
+	 */
+    private void checkout() {
+    	Cursor c = managedQuery(getIntent().getData(), PROJECTION, null, null,
+                ShoppingList.DEFAULT_SORT_ORDER);
+    	c.moveToFirst();
+    	ContentValues values = new ContentValues();
+    	values.put(ShoppingList.STATUS, ShoppingList.OFF_LIST);
+    	Uri uri;
+    	int status;
+    	long id;
+    	//loop through all items in the list
+    	while (!c.isAfterLast()) {
+    		status = c.getInt(c.getColumnIndex(ShoppingList.STATUS));
+    		//if the item is not in the trolley jump to the next one
+    		if (status == ShoppingList.IN_TROLLEY) {
+	    		id = c.getLong(c.getColumnIndexOrThrow(ShoppingList._ID));
+	    		uri = ContentUris.withAppendedId(getIntent().getData(), id);
+	    		//Update the status of this item (in trolley) to "off list"
+	    		getContentResolver().update(uri, values, null, null);
+    		}
+	    	c.moveToNext();
+    	}
+    }
 }
