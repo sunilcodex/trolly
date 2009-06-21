@@ -10,6 +10,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -21,6 +22,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Filterable;
 import android.widget.ListView;
@@ -29,6 +31,8 @@ import android.widget.TextView;
 
 public class Trolly extends ListActivity {
 	
+	private static final String KEY_MODE = "mode";
+
 	/**
 	 * TrollyAdapter allows crossing items off the list and filtering
 	 * on user text input.
@@ -106,11 +110,21 @@ public class Trolly extends ListActivity {
      */
     private static final int DIALOG_INSERT = 1;
     
+    //Modes
+    private static final int MODE_LISTING = 1;
+    private static final int MODE_SHOPPING = 2;
+    
   //Use private members for dialog textview to prevent weird persistence problem
 	private EditText mDialogEdit;
 	private View mDialogView;
 
 	private Cursor mCursor;
+	private Button btn_listMode;
+	private Button btn_shopMode;
+	private TrollyAdapter mAdapter;
+	private SharedPreferences mPrefs;
+	private int mMode;
+	
 	
     /** Called when the activity is first created. */
     @Override
@@ -127,16 +141,44 @@ public class Trolly extends ListActivity {
         setContentView(R.layout.trolly);  
         // Inform the list we provide context menus for items
         getListView().setOnCreateContextMenuListener(this);
-        
+               
         mCursor = managedQuery(getIntent().getData(), PROJECTION, null, null,
                 ShoppingList.DEFAULT_SORT_ORDER);
 
-        // Used to map notes entries from the database to views
-        TrollyAdapter adapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
+        mAdapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
                 new String[] { ShoppingList.ITEM}, new int[] { R.id.item});
-        setListAdapter(adapter);
+        setListAdapter(mAdapter);
+              
+        btn_listMode = (Button)findViewById(R.id.listing_mode);
+        btn_shopMode = (Button)findViewById(R.id.shopping_mode);
+        
+        mPrefs = getSharedPreferences(null, MODE_PRIVATE);
+        mMode = mPrefs.getInt(KEY_MODE, MODE_LISTING);
+        setMode(mMode);
+        
+        btn_listMode.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				mMode = MODE_LISTING;
+				setMode(mMode);
+			}
+        });
+        
+        btn_shopMode.setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				mMode = MODE_SHOPPING;
+				setMode(mMode);
+			}
+        });
     }
     
+	@Override
+	protected void onPause() {
+		super.onPause();
+		SharedPreferences.Editor ed = mPrefs.edit();
+		ed.putInt(KEY_MODE, mMode);
+		ed.commit();
+	}
+
 	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
 		//super.onListItemClick(l, v, position, id);
@@ -256,6 +298,31 @@ public class Trolly extends ListActivity {
 	    		getContentResolver().update(uri, values, null, null);
     		}
 	    	c.moveToNext();
+    	}
+    }
+    
+    private void setMode(int mode) {
+    	switch (mode) {
+	    	case MODE_SHOPPING:
+	    		btn_shopMode.setTextColor(getResources().getColor(R.color.red_text));
+				btn_listMode.setTextColor(getResources().getColor(R.color.gray_text));
+				mCursor = managedQuery(getIntent().getData(), 
+										PROJECTION, 
+										ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
+										null,
+										ShoppingList.DEFAULT_SORT_ORDER);
+				mAdapter.changeCursor(mCursor);
+				break;
+	    	case MODE_LISTING:
+	    		btn_listMode.setTextColor(getResources().getColor(R.color.red_text));
+				btn_shopMode.setTextColor(getResources().getColor(R.color.gray_text));
+				mCursor = managedQuery(getIntent().getData(), 
+										PROJECTION, 
+										null, 
+										null,
+										ShoppingList.DEFAULT_SORT_ORDER);
+				mAdapter.changeCursor(mCursor);
+	    		break;
     	}
     }
 }

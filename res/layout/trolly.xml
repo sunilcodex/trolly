@@ -3,6 +3,27 @@
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
 	android:orientation="vertical" >
+	<LinearLayout android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:orientation="horizontal" >
+		<Button android:id="@+id/listing_mode"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_weight="2"
+			android:text="Listing"
+			android:textColor="@color/red_text" />
+		<ImageView android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:src="@drawable/icon"
+			android:layout_weight="1"
+			android:textColor="@color/red_text" />
+		<Button android:id="@+id/shopping_mode"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_weight="2"
+			android:text="Shopping"
+			android:textColor="@color/gray_text" />
+	</LinearLayout>
 	<ListView android:id="@android:id/list"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
