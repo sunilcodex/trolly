@@ -14,6 +14,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.ContextMenu;
@@ -25,6 +26,7 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Filterable;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -121,6 +123,7 @@ public class Trolly extends ListActivity {
 	private Cursor mCursor;
 	private Button btn_listMode;
 	private Button btn_shopMode;
+	private ImageView icon_mode;
 	private TrollyAdapter mAdapter;
 	private SharedPreferences mPrefs;
 	private int mMode;
@@ -151,6 +154,7 @@ public class Trolly extends ListActivity {
               
         btn_listMode = (Button)findViewById(R.id.listing_mode);
         btn_shopMode = (Button)findViewById(R.id.shopping_mode);
+        icon_mode = (ImageView)findViewById(R.id.icon_mode);
         
         mPrefs = getSharedPreferences(null, MODE_PRIVATE);
         mMode = mPrefs.getInt(KEY_MODE, MODE_LISTING);
@@ -306,6 +310,7 @@ public class Trolly extends ListActivity {
 	    	case MODE_SHOPPING:
 	    		btn_shopMode.setTextColor(getResources().getColor(R.color.red_text));
 				btn_listMode.setTextColor(getResources().getColor(R.color.gray_text));
+				icon_mode.setImageResource(R.drawable.shop_mode);
 				mCursor = managedQuery(getIntent().getData(), 
 										PROJECTION, 
 										ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
@@ -316,6 +321,7 @@ public class Trolly extends ListActivity {
 	    	case MODE_LISTING:
 	    		btn_listMode.setTextColor(getResources().getColor(R.color.red_text));
 				btn_shopMode.setTextColor(getResources().getColor(R.color.gray_text));
+				icon_mode.setImageResource(R.drawable.list_mode);
 				mCursor = managedQuery(getIntent().getData(), 
 										PROJECTION, 
 										null, 
