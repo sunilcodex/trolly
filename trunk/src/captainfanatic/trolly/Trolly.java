@@ -17,12 +17,14 @@ import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Filterable;
@@ -33,8 +35,10 @@ import android.widget.TextView;
 
 public class Trolly extends ListActivity {
 	
+	private static final String TAG = "Trolly";
+	
 	private static final String KEY_MODE = "mode";
-
+	
 	/**
 	 * TrollyAdapter allows crossing items off the list and filtering
 	 * on user text input.
@@ -106,6 +110,11 @@ public class Trolly extends ListActivity {
     public static final int MENU_ITEM_DELETE = Menu.FIRST;
     public static final int MENU_ITEM_INSERT = Menu.FIRST + 1;
     public static final int MENU_ITEM_CHECKOUT = Menu.FIRST + 2;
+    //Context menu ids
+    public static final int MENU_ITEM_ADD = Menu.FIRST + 3;
+    public static final int MENU_ITEM_REMOVE = Menu.FIRST + 4;
+    public static final int MENU_ITEM_IN_TROLLEY = Menu.FIRST + 5;
+    public static final int MENU_ITEM_OUT_TROLLEY = Menu.FIRST + 6;
     
     /**
      * Case selections for the type of dialog box displayed
@@ -213,15 +222,89 @@ public class Trolly extends ListActivity {
 
 	@Override
 	public boolean onContextItemSelected(MenuItem item) {
-		// TODO Auto-generated method stub
-		return super.onContextItemSelected(item);
+		AdapterView.AdapterContextMenuInfo info;
+        try {
+             info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        } catch (ClassCastException e) {
+            Log.e(TAG, "bad menuInfo", e);
+            return false;
+        }
+        
+        Cursor cursor = (Cursor) getListAdapter().getItem(info.position);
+        if (cursor == null) {
+            // For some reason the requested item isn't available, do nothing
+            return false;
+        }
+        
+        Uri uri = ContentUris.withAppendedId(getIntent().getData(), 
+        									cursor.getLong(cursor.getColumnIndex(ShoppingList._COUNT)));
+
+        switch (item.getItemId()) {
+	        case MENU_ITEM_ADD:
+                // Change to "on list" status
+	        	//TODO: implement above
+	        	return true;	        	
+	        case MENU_ITEM_REMOVE:
+                // Change to "off list" status
+	        	//TODO: implement above
+                return true;
+	        case MENU_ITEM_IN_TROLLEY:
+	        	//Change to "in trolley" status
+	        	//TODO: implement above
+	        	return true;
+	        case MENU_ITEM_OUT_TROLLEY:
+	        	//Change to "on list" status
+	        	//TODO: implement above
+	        	return true;
+	        case MENU_ITEM_DELETE:
+	        	//Show are you sure dialog then delete
+	        	//TODO: implement above
+	        	return true;
+        }
+        return false;
 	}
 
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v,
 			ContextMenuInfo menuInfo) {
-		// TODO Auto-generated method stub
-		super.onCreateContextMenu(menu, v, menuInfo);
+		AdapterView.AdapterContextMenuInfo info;
+        try {
+             info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        } catch (ClassCastException e) {
+            Log.e(TAG, "bad menuInfo", e);
+            return;
+        }
+		Cursor cursor = (Cursor)getListAdapter().getItem(info.position);
+		if (cursor == null) {
+            // For some reason the requested item isn't available, do nothing
+            return;
+        }
+        // Setup the menu header
+        menu.setHeaderTitle(cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM)));
+        int status = cursor.getInt(cursor.getColumnIndex(ShoppingList.STATUS));
+        // Add context menu items, all disabled inititally
+        menu.add(0, MENU_ITEM_ADD, 0, R.string.move_on_list).setEnabled(false);
+        menu.add(0, MENU_ITEM_REMOVE, 0, R.string.move_off_list).setEnabled(false);
+    	menu.add(0, MENU_ITEM_IN_TROLLEY, 0, R.string.move_in_trolley).setEnabled(false);
+    	menu.add(0, MENU_ITEM_OUT_TROLLEY, 0, R.string.move_out_trolley).setEnabled(false);
+    	menu.add(0, MENU_ITEM_DELETE, 0, R.string.delete_item);
+        
+    	//Enable the relevant context menu items depending on current state
+    	switch (status) {
+        case ShoppingList.OFF_LIST:
+        	menu.findItem(MENU_ITEM_ADD).setEnabled(true);
+        	menu.findItem(MENU_ITEM_IN_TROLLEY).setEnabled(true);
+        	break;
+        case ShoppingList.ON_LIST:
+        	menu.findItem(MENU_ITEM_REMOVE).setEnabled(true);
+        	menu.findItem(MENU_ITEM_IN_TROLLEY).setEnabled(true);
+        	break;
+        case ShoppingList.IN_TROLLEY:
+        	menu.findItem(MENU_ITEM_REMOVE).setEnabled(true);
+        	menu.findItem(MENU_ITEM_OUT_TROLLEY).setEnabled(true);
+        	break;
+        }
+        
 	}
 
 	@Override

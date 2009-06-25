@@ -8,4 +8,10 @@
     <string name="dialog_insert_hint">item</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
+    
+    <string name="delete_item">Delete</string>
+    <string name="move_on_list">Add to list</string>
+    <string name="move_off_list">Remove from list</string>
+    <string name="move_in_trolley">Put in trolley</string>
+    <string name="move_out_trolley">Remove from trolley</string>
 </resources>
