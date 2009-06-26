@@ -1,5 +1,6 @@
 package captainfanatic.trolly;
 
+import java.util.ArrayList;
 import captainfanatic.provider.Trolly.ShoppingList;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -14,7 +15,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,6 +38,7 @@ public class Trolly extends ListActivity {
 	private static final String TAG = "Trolly";
 	
 	private static final String KEY_MODE = "mode";
+	public static final String KEY_ITEM = "items";
 	
 	/**
 	 * TrollyAdapter allows crossing items off the list and filtering
@@ -120,6 +121,7 @@ public class Trolly extends ListActivity {
      * Case selections for the type of dialog box displayed
      */
     private static final int DIALOG_INSERT = 1;
+    private static final int DIALOG_DELETE = 2;
     
     //Modes
     private static final int MODE_LISTING = 1;
@@ -127,6 +129,7 @@ public class Trolly extends ListActivity {
     
   //Use private members for dialog textview to prevent weird persistence problem
 	private EditText mDialogEdit;
+	private TextView mDialogText;
 	private View mDialogView;
 
 	private Cursor mCursor;
@@ -136,6 +139,8 @@ public class Trolly extends ListActivity {
 	private TrollyAdapter mAdapter;
 	private SharedPreferences mPrefs;
 	private int mMode;
+
+	private Uri mUri;
 	
 	
     /** Called when the activity is first created. */
@@ -149,7 +154,7 @@ public class Trolly extends ListActivity {
         if (intent.getData() == null) {
             intent.setData(ShoppingList.CONTENT_URI);
         }
-
+              
         setContentView(R.layout.trolly);  
         // Inform the list we provide context menus for items
         getListView().setOnCreateContextMenuListener(this);
@@ -182,6 +187,9 @@ public class Trolly extends ListActivity {
 				setMode(mMode);
 			}
         });
+        
+        if (intent.hasExtra(KEY_ITEM))
+        	addIntentItems();
     }
     
 	@Override
@@ -236,29 +244,37 @@ public class Trolly extends ListActivity {
             return false;
         }
         
-        Uri uri = ContentUris.withAppendedId(getIntent().getData(), 
-        									cursor.getLong(cursor.getColumnIndex(ShoppingList._COUNT)));
+        mUri = ContentUris.withAppendedId(getIntent().getData(), 
+        									cursor.getLong(cursor.getColumnIndex(ShoppingList._ID)));
+		Cursor c = getContentResolver().query(mUri, PROJECTION, null, null, null);
+		c.moveToFirst();
+		ContentValues values = new ContentValues();
 
         switch (item.getItemId()) {
 	        case MENU_ITEM_ADD:
                 // Change to "on list" status
-	        	//TODO: implement above
+	        	values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+	        	getContentResolver().update(mUri, values, null, null);
 	        	return true;	        	
 	        case MENU_ITEM_REMOVE:
                 // Change to "off list" status
-	        	//TODO: implement above
+	        	values.put(ShoppingList.STATUS, ShoppingList.OFF_LIST);
+	        	getContentResolver().update(mUri, values, null, null);
                 return true;
 	        case MENU_ITEM_IN_TROLLEY:
 	        	//Change to "in trolley" status
-	        	//TODO: implement above
+	        	values.put(ShoppingList.STATUS, ShoppingList.IN_TROLLEY);
+	        	getContentResolver().update(mUri, values, null, null);
 	        	return true;
 	        case MENU_ITEM_OUT_TROLLEY:
 	        	//Change to "on list" status
-	        	//TODO: implement above
+	        	values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+	        	getContentResolver().update(mUri, values, null, null);
 	        	return true;
 	        case MENU_ITEM_DELETE:
 	        	//Show are you sure dialog then delete
-	        	//TODO: implement above
+	        	showDialog(DIALOG_DELETE);
+	        	mDialogText.setText(c.getString(c.getColumnIndex(ShoppingList.ITEM)));
 	        	return true;
         }
         return false;
@@ -304,7 +320,6 @@ public class Trolly extends ListActivity {
         	menu.findItem(MENU_ITEM_OUT_TROLLEY).setEnabled(true);
         	break;
         }
-        
 	}
 
 	@Override
@@ -353,7 +368,24 @@ public class Trolly extends ListActivity {
                 })
                 .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
-
+                        /* User clicked cancel so do some stuff */
+                    }
+                })
+                .create();
+		case DIALOG_DELETE:
+            mDialogView = factory.inflate(R.layout.dialog_confirm, null);
+            mDialogText = (TextView)mDialogView.findViewById(R.id.dialog_confirm_prompt);
+            return new AlertDialog.Builder(this)
+                .setTitle(R.string.delete_item)
+                .setView(mDialogView)
+                .setPositiveButton(R.string.dialog_ok, new DialogInterface.OnClickListener() {
+                	public void onClick(DialogInterface dialog, int whichButton) {
+                    	/* User clicked OK so do some stuff */
+                		getContentResolver().delete(mUri, null, null);
+                	}
+                })
+                .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
                         /* User clicked cancel so do some stuff */
                     }
                 })
@@ -414,4 +446,42 @@ public class Trolly extends ListActivity {
 	    		break;
     	}
     }
+    
+    /**
+     * Add items received as extras in the intent to the list
+     */
+    private void addIntentItems() {
+    	ArrayList<String> list = getIntent().getStringArrayListExtra(KEY_ITEM);
+    	Cursor c;
+    	long id;
+    	Uri uri;
+    	for (String item : list) {
+    		c = getContentResolver().query(getIntent().getData(), 
+    										PROJECTION, 
+    										ShoppingList.ITEM + "='" + item + "'", 
+    										null, 
+    										null);
+
+    		//If there is no match then just add the item to the list with "on list" status
+    		c.moveToFirst();
+    		if (c.isBeforeFirst()) {
+    			ContentValues values = new ContentValues();
+    			values.put(ShoppingList.ITEM, item);
+    			values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+    			getContentResolver().insert(getIntent().getData(), values);
+    		} else {
+        	//If there is a list item that matches change its status to "on list"
+    			c.moveToFirst();
+    	    	ContentValues values = new ContentValues();
+    			values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+    			id = c.getLong(c.getColumnIndex(ShoppingList._ID));
+				uri = ContentUris.withAppendedId(getIntent().getData(), id);
+				getContentResolver().update(uri, values, null, null);
+    		}    		
+    	}
+    }
 }
+
+
+
+
