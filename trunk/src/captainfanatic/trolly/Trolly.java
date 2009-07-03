@@ -13,10 +13,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
@@ -111,17 +113,18 @@ public class Trolly extends ListActivity {
     public static final int MENU_ITEM_DELETE = Menu.FIRST;
     public static final int MENU_ITEM_INSERT = Menu.FIRST + 1;
     public static final int MENU_ITEM_CHECKOUT = Menu.FIRST + 2;
-    //Context menu ids
-    public static final int MENU_ITEM_ADD = Menu.FIRST + 3;
-    public static final int MENU_ITEM_REMOVE = Menu.FIRST + 4;
-    public static final int MENU_ITEM_IN_TROLLEY = Menu.FIRST + 5;
-    public static final int MENU_ITEM_OUT_TROLLEY = Menu.FIRST + 6;
+    public static final int MENU_ITEM_PREFERENCE = Menu.FIRST + 3;
+    public static final int MENU_ITEM_ON_LIST = Menu.FIRST + 4;
+    public static final int MENU_ITEM_OFF_LIST = Menu.FIRST + 5;
+    public static final int MENU_ITEM_IN_TROLLEY = Menu.FIRST + 6;
+    public static final int MENU_ITEM_EDIT = Menu.FIRST + 7;
     
     /**
      * Case selections for the type of dialog box displayed
      */
     private static final int DIALOG_INSERT = 1;
     private static final int DIALOG_DELETE = 2;
+    private static final int DIALOG_EDIT = 3;
     
     //Modes
     private static final int MODE_LISTING = 1;
@@ -170,7 +173,8 @@ public class Trolly extends ListActivity {
         btn_shopMode = (Button)findViewById(R.id.shopping_mode);
         icon_mode = (ImageView)findViewById(R.id.icon_mode);
         
-        mPrefs = getSharedPreferences(null, MODE_PRIVATE);
+        //mPrefs = getSharedPreferences(null, MODE_PRIVATE);
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mMode = mPrefs.getInt(KEY_MODE, MODE_LISTING);
         setMode(mMode);
         
@@ -192,6 +196,13 @@ public class Trolly extends ListActivity {
         	addIntentItems();
     }
     
+	@Override
+	protected void onResume() {
+		super.onResume();
+		mMode = mPrefs.getInt(KEY_MODE, MODE_LISTING);
+        setMode(mMode);
+	}
+
 	@Override
 	protected void onPause() {
 		super.onPause();
@@ -251,12 +262,12 @@ public class Trolly extends ListActivity {
 		ContentValues values = new ContentValues();
 
         switch (item.getItemId()) {
-	        case MENU_ITEM_ADD:
+	        case MENU_ITEM_ON_LIST:
                 // Change to "on list" status
 	        	values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
 	        	getContentResolver().update(mUri, values, null, null);
 	        	return true;	        	
-	        case MENU_ITEM_REMOVE:
+	        case MENU_ITEM_OFF_LIST:
                 // Change to "off list" status
 	        	values.put(ShoppingList.STATUS, ShoppingList.OFF_LIST);
 	        	getContentResolver().update(mUri, values, null, null);
@@ -266,10 +277,10 @@ public class Trolly extends ListActivity {
 	        	values.put(ShoppingList.STATUS, ShoppingList.IN_TROLLEY);
 	        	getContentResolver().update(mUri, values, null, null);
 	        	return true;
-	        case MENU_ITEM_OUT_TROLLEY:
-	        	//Change to "on list" status
-	        	values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
-	        	getContentResolver().update(mUri, values, null, null);
+	        case MENU_ITEM_EDIT:
+	        	//Show edit dialog
+	        	showDialog(DIALOG_EDIT);
+	        	mDialogEdit.setText(c.getString(c.getColumnIndex(ShoppingList.ITEM)));
 	        	return true;
 	        case MENU_ITEM_DELETE:
 	        	//Show are you sure dialog then delete
@@ -298,28 +309,26 @@ public class Trolly extends ListActivity {
         // Setup the menu header
         menu.setHeaderTitle(cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM)));
         int status = cursor.getInt(cursor.getColumnIndex(ShoppingList.STATUS));
-        // Add context menu items, all disabled inititally
-        menu.add(0, MENU_ITEM_ADD, 0, R.string.move_on_list).setEnabled(false);
-        menu.add(0, MENU_ITEM_REMOVE, 0, R.string.move_off_list).setEnabled(false);
-    	menu.add(0, MENU_ITEM_IN_TROLLEY, 0, R.string.move_in_trolley).setEnabled(false);
-    	menu.add(0, MENU_ITEM_OUT_TROLLEY, 0, R.string.move_out_trolley).setEnabled(false);
-    	menu.add(0, MENU_ITEM_DELETE, 0, R.string.delete_item);
         
-    	//Enable the relevant context menu items depending on current state
+    	//Add context menu items depending on current state
     	switch (status) {
         case ShoppingList.OFF_LIST:
-        	menu.findItem(MENU_ITEM_ADD).setEnabled(true);
-        	menu.findItem(MENU_ITEM_IN_TROLLEY).setEnabled(true);
+        	menu.add(0, MENU_ITEM_ON_LIST, 0, R.string.move_on_list);
+        	menu.add(0, MENU_ITEM_IN_TROLLEY, 0, R.string.move_in_trolley);
         	break;
         case ShoppingList.ON_LIST:
-        	menu.findItem(MENU_ITEM_REMOVE).setEnabled(true);
-        	menu.findItem(MENU_ITEM_IN_TROLLEY).setEnabled(true);
+        	menu.add(0, MENU_ITEM_IN_TROLLEY, 0, R.string.move_in_trolley);
+        	menu.add(0, MENU_ITEM_OFF_LIST, 0, R.string.move_off_list);
         	break;
         case ShoppingList.IN_TROLLEY:
-        	menu.findItem(MENU_ITEM_REMOVE).setEnabled(true);
-        	menu.findItem(MENU_ITEM_OUT_TROLLEY).setEnabled(true);
+        	menu.add(0, MENU_ITEM_ON_LIST, 0, R.string.move_on_list);
+        	menu.add(0, MENU_ITEM_OFF_LIST, 0, R.string.move_off_list);
         	break;
         }
+    	
+        // Add context menu items that are relevant for all items
+    	menu.add(0, MENU_ITEM_EDIT, 0, R.string.edit_item);
+    	menu.add(0, MENU_ITEM_DELETE, 0, R.string.delete_item);
 	}
 
 	@Override
@@ -329,6 +338,8 @@ public class Trolly extends ListActivity {
         .setIcon(android.R.drawable.ic_menu_add);
 		menu.add(0, MENU_ITEM_CHECKOUT, 0, R.string.checkout)
         .setIcon(android.R.drawable.ic_media_next);
+		menu.add (0, MENU_ITEM_PREFERENCE, 0, R.string.preferences)
+        .setIcon(android.R.drawable.ic_menu_preferences);
 		return true;
 	}
 
@@ -343,6 +354,9 @@ public class Trolly extends ListActivity {
         case MENU_ITEM_CHECKOUT:
         	//Change all items from in trolley to off list
         	checkout();
+        	return true;
+        case MENU_ITEM_PREFERENCE:
+        	startActivity(new Intent(this,TrollyPreferences.class));
         	return true;
         }
 		return super.onOptionsItemSelected(item);
@@ -364,6 +378,26 @@ public class Trolly extends ListActivity {
                 		ContentValues values = new ContentValues();
                         values.put(ShoppingList.ITEM, mDialogEdit.getText().toString());
                 		getContentResolver().insert(ShoppingList.CONTENT_URI,values);
+                	}
+                })
+                .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        /* User clicked cancel so do some stuff */
+                    }
+                })
+                .create();
+		case DIALOG_EDIT:
+            mDialogView = factory.inflate(R.layout.dialog_edit, null);
+            mDialogEdit = (EditText)mDialogView.findViewById(R.id.edit);
+            return new AlertDialog.Builder(this)
+                .setTitle(R.string.edit_item)
+                .setView(mDialogView)
+                .setPositiveButton(R.string.dialog_ok, new DialogInterface.OnClickListener() {
+                	public void onClick(DialogInterface dialog, int whichButton) {
+                    	/* User clicked OK so do some stuff */
+                		ContentValues values = new ContentValues();
+                        values.put(ShoppingList.ITEM, mDialogEdit.getText().toString());
+                		getContentResolver().update(mUri, values, null, null);
                 	}
                 })
                 .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
@@ -421,28 +455,51 @@ public class Trolly extends ListActivity {
     }
     
     private void setMode(int mode) {
+    	String sortOrder;
     	switch (mode) {
 	    	case MODE_SHOPPING:
 	    		btn_shopMode.setTextColor(getResources().getColor(R.color.red_text));
 				btn_listMode.setTextColor(getResources().getColor(R.color.gray_text));
 				icon_mode.setImageResource(R.drawable.shop_mode);
-				mCursor = managedQuery(getIntent().getData(), 
-										PROJECTION, 
-										ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
-										null,
-										ShoppingList.DEFAULT_SORT_ORDER);
-				mAdapter.changeCursor(mCursor);
+				try {
+					sortOrder = mPrefs.getString(getString(R.string.key_sort_shop), ShoppingList.DEFAULT_SORT_ORDER);
+					mCursor = managedQuery(getIntent().getData(), 
+											PROJECTION, 
+											ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
+											null,
+											sortOrder);
+					mAdapter.changeCursor(mCursor);
+				}catch (SQLException e) {
+					//Try a safer SQL query  
+					mCursor = managedQuery(getIntent().getData(), 
+							PROJECTION, 
+							ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
+							null,
+							ShoppingList.DEFAULT_SORT_ORDER);
+					mAdapter.changeCursor(mCursor);
+				}
 				break;
 	    	case MODE_LISTING:
 	    		btn_listMode.setTextColor(getResources().getColor(R.color.red_text));
 				btn_shopMode.setTextColor(getResources().getColor(R.color.gray_text));
 				icon_mode.setImageResource(R.drawable.list_mode);
-				mCursor = managedQuery(getIntent().getData(), 
-										PROJECTION, 
-										null, 
-										null,
-										ShoppingList.DEFAULT_SORT_ORDER);
-				mAdapter.changeCursor(mCursor);
+				sortOrder = mPrefs.getString(getString(R.string.key_sort_list), ShoppingList.DEFAULT_SORT_ORDER);
+				try {
+					mCursor = managedQuery(getIntent().getData(), 
+											PROJECTION, 
+											null, 
+											null,
+											sortOrder);
+					mAdapter.changeCursor(mCursor);
+				} catch (SQLException e) {
+					//Try a safer SQL query
+					mCursor = managedQuery(getIntent().getData(), 
+							PROJECTION, 
+							null, 
+							null,
+							ShoppingList.DEFAULT_SORT_ORDER);
+					mAdapter.changeCursor(mCursor);
+				}
 	    		break;
     	}
     }

@@ -213,9 +213,24 @@ public class TrollyProvider extends ContentProvider {
     }
 
     @Override
-    public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
+    public int update(Uri uri, ContentValues initialValues, String where, String[] whereArgs) {
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         int count;
+        
+        ContentValues values;
+        if (initialValues != null) {
+            values = new ContentValues(initialValues);
+        } else {
+            values = new ContentValues();
+        }
+
+        Long now = Long.valueOf(System.currentTimeMillis());
+
+        // Update the modified field
+        if (values.containsKey(ShoppingList.MODIFIED_DATE) == false) {
+            values.put(ShoppingList.MODIFIED_DATE, now);
+        }
+        
         switch (sUriMatcher.match(uri)) {
         case ITEMS:
             count = db.update(TABLE_NAME, values, where, whereArgs);
