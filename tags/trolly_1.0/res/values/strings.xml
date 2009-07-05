@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, Trolly!</string>
+    <string name="app_name">Trolly</string>
+    
+    <string name="insert_item">Insert item</string>
+    <string name="checkout">Checkout</string>
+    <string name="dialog_insert_hint">item</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+    
+    <string name="delete_item">Delete</string>
+    <string name="edit_item">Edit</string>
+    <string name="move_on_list">On list</string>
+    <string name="move_off_list">Off list</string>
+    <string name="move_in_trolley">In trolley</string>
+    
+    <string name="key_sort_list">list mode sort order</string>
+    <string name="key_sort_shop">shop mode sort order</string>
+    
+    <string name="preferences">Preferences</string>
+</resources>
