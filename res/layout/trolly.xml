@@ -12,8 +12,7 @@
 			android:layout_height="wrap_content"
 			android:layout_weight="1"
 			android:layout_gravity="center_vertical"
-			android:text="Listing"
-			android:textColor="@color/red_text" />
+			android:text="Listing" />
 		<ImageView android:id="@+id/icon_mode" 
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
@@ -23,8 +22,7 @@
 			android:layout_height="wrap_content"
 			android:layout_weight="1"
 			android:layout_gravity="center_vertical"
-			android:text="Shopping"
-			android:textColor="@color/gray_text" />
+			android:text="Shopping" />
 	</LinearLayout>
 	<ListView android:id="@android:id/list"
         android:layout_width="fill_parent"

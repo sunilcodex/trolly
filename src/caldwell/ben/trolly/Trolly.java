@@ -1,7 +1,27 @@
-package captainfanatic.trolly;
+/**
+	<Trolly is a simple shopping list application for android phones.>
+	Copyright (C) 2009  Ben Caldwell
+ 	
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+   
+
+package caldwell.ben.trolly;
 
 import java.util.ArrayList;
-import captainfanatic.provider.Trolly.ShoppingList;
+
+import caldwell.ben.provider.Trolly.ShoppingList;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
@@ -19,7 +39,6 @@ import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -37,7 +56,7 @@ import android.widget.TextView;
 
 public class Trolly extends ListActivity {
 	
-	private static final String TAG = "Trolly";
+//	private static final String TAG = "Trolly";
 	
 	private static final String KEY_MODE = "mode";
 	public static final String KEY_ITEM = "items";
@@ -245,7 +264,6 @@ public class Trolly extends ListActivity {
         try {
              info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         } catch (ClassCastException e) {
-            Log.e(TAG, "bad menuInfo", e);
             return false;
         }
         
@@ -298,7 +316,6 @@ public class Trolly extends ListActivity {
         try {
              info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         } catch (ClassCastException e) {
-            Log.e(TAG, "bad menuInfo", e);
             return;
         }
 		Cursor cursor = (Cursor)getListAdapter().getItem(info.position);
