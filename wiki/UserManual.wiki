@@ -26,8 +26,10 @@ When you finished shopping, just tap the _Checkout_ option on the options menu. 
 == Modes ==
 Trolly has two modes of operation _Listing_ and _Shopping_ which you change between by clicking the buttons of the same names at the top of the screen.
 
-=== Listing ===
+  # Listing
 In _Listing_ mode you are creating a shopping list. The icon in the centre top of the screen will be a list with a blue background. In _Listing_ mode items in all states will be displayed allowing a one click addition to you shopping list (change _Off List_ to _On List_).
 
-=== Shopping ===
+  # Shopping
 In _Shopping_ mode you are at the shops and picking up items on your list. The icon in the top centre of the screen will be a trolly with an orange background. In _Shopping_ mode the list is filtered to exclude _Off List_ items, so you only see items you need to buy _(On List)_ and items you have ticked off _(In Trolly)_.
+
+Enjoy using Trolly, and please let me know if anything here is unclear or different to how Trolly works for you.
