@@ -17,7 +17,7 @@
                 <action android:name="android.intent.action.INSERT" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.ALTERNATIVE" />
-                <data android:mimeType="vnd.android.cursor.dir/vnd.captainfanatic.trolly" />
+                <data android:mimeType="vnd.android.cursor.dir/vnd.caldwell.ben.trolly" />
             </intent-filter>
         </activity>
         <activity android:name=".TrollyPreferences"
