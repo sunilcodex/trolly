@@ -560,7 +560,7 @@ public class Trolly extends ListActivity {
 	    		btn_listMode.setTextColor(getResources().getColor(R.color.red_text));
 				btn_shopMode.setTextColor(getResources().getColor(R.color.gray_text));
 				icon_mode.setImageResource(R.drawable.list_mode);
-				sortOrder = mPrefs.getString(getString(R.string.key_sort_list), ShoppingList.DEFAULT_SORT_ORDER);
+				sortOrder = mPrefs.getString(getString(R.string.key_sort_list), ShoppingList.MODIFIED_DATE + " DESC");
 				try {
 					mCursor = managedQuery(getIntent().getData(), 
 											PROJECTION, 
