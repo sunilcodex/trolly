@@ -19,4 +19,9 @@
     <string name="key_sort_shop">shop mode sort order</string>
     
     <string name="preferences">Preferences</string>
+    <string name="clear_list">Clear List</string>
+    <string name="clear_prompt">Remove all items from the list?</string>
+    <string name="reset_list">Reset List</string>
+    <string name="reset_prompt">Permanently delete all items from the list?</string>
+    
 </resources>

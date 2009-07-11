@@ -137,6 +137,8 @@ public class Trolly extends ListActivity {
     public static final int MENU_ITEM_OFF_LIST = Menu.FIRST + 5;
     public static final int MENU_ITEM_IN_TROLLEY = Menu.FIRST + 6;
     public static final int MENU_ITEM_EDIT = Menu.FIRST + 7;
+    public static final int MENU_ITEM_CLEAR = Menu.FIRST + 8;
+    public static final int MENU_ITEM_RESET = Menu.FIRST + 9;
     
     /**
      * Case selections for the type of dialog box displayed
@@ -144,6 +146,8 @@ public class Trolly extends ListActivity {
     private static final int DIALOG_INSERT = 1;
     private static final int DIALOG_DELETE = 2;
     private static final int DIALOG_EDIT = 3;
+    private static final int DIALOG_CLEAR = 4;
+    private static final int DIALOG_RESET = 5;
     
     //Modes
     private static final int MODE_LISTING = 1;
@@ -351,12 +355,16 @@ public class Trolly extends ListActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
-		menu.add(0, MENU_ITEM_INSERT, 0, R.string.insert_item)
+		menu.add(0, MENU_ITEM_INSERT, 1, R.string.insert_item)
         .setIcon(android.R.drawable.ic_menu_add);
-		menu.add(0, MENU_ITEM_CHECKOUT, 0, R.string.checkout)
+		menu.add(0, MENU_ITEM_CHECKOUT, 2, R.string.checkout)
         .setIcon(android.R.drawable.ic_media_next);
-		menu.add (0, MENU_ITEM_PREFERENCE, 0, R.string.preferences)
+		menu.add(0, MENU_ITEM_CLEAR, 3, R.string.clear_list)
+        .setIcon(android.R.drawable.ic_menu_revert);
+		menu.add (0, MENU_ITEM_PREFERENCE, 4, R.string.preferences)
         .setIcon(android.R.drawable.ic_menu_preferences);
+		menu.add(0, MENU_ITEM_RESET, 5, R.string.reset_list)
+        .setIcon(android.R.drawable.ic_menu_delete);
 		return true;
 	}
 
@@ -371,6 +379,16 @@ public class Trolly extends ListActivity {
         case MENU_ITEM_CHECKOUT:
         	//Change all items from in trolley to off list
         	checkout();
+        	return true;
+        case MENU_ITEM_CLEAR:
+        	//Change all items to off list
+        	showDialog(DIALOG_CLEAR);
+        	mDialogText.setText(R.string.clear_prompt);
+        	return true;
+        case MENU_ITEM_RESET:
+        	//Change all items to off list
+        	showDialog(DIALOG_RESET);
+        	mDialogText.setText(R.string.reset_prompt);
         	return true;
         case MENU_ITEM_PREFERENCE:
         	startActivity(new Intent(this,TrollyPreferences.class));
@@ -441,6 +459,44 @@ public class Trolly extends ListActivity {
                     }
                 })
                 .create();
+		case DIALOG_CLEAR:
+            mDialogView = factory.inflate(R.layout.dialog_confirm, null);
+            mDialogText = (TextView)mDialogView.findViewById(R.id.dialog_confirm_prompt);
+            return new AlertDialog.Builder(this)
+                .setTitle(R.string.clear_list)
+                .setView(mDialogView)
+                .setPositiveButton(R.string.dialog_ok, new DialogInterface.OnClickListener() {
+                	public void onClick(DialogInterface dialog, int whichButton) {
+                		ContentValues values = new ContentValues();
+                    	//Set all items status to "off list"
+                    	values.put(ShoppingList.STATUS, ShoppingList.OFF_LIST);
+                    	getContentResolver().update(getIntent().getData(), values, null, null);
+                	}
+                })
+                .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        /* User clicked cancel so do some stuff */
+                    }
+                })
+                .create();
+		case DIALOG_RESET:
+            mDialogView = factory.inflate(R.layout.dialog_confirm, null);
+            mDialogText = (TextView)mDialogView.findViewById(R.id.dialog_confirm_prompt);
+            return new AlertDialog.Builder(this)
+                .setTitle(R.string.reset_list)
+                .setView(mDialogView)
+                .setPositiveButton(R.string.dialog_ok, new DialogInterface.OnClickListener() {
+                	public void onClick(DialogInterface dialog, int whichButton) {
+                    	//Permanently delete all items from the list
+                    	getContentResolver().delete(getIntent().getData(), null, null);
+                	}
+                })
+                .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        /* User clicked cancel so do some stuff */
+                    }
+                })
+                .create();
 		}
 		return null;
 	}
@@ -471,6 +527,10 @@ public class Trolly extends ListActivity {
     	}
     }
     
+    /**
+     * Change the mode between shopping and list mode
+     * @param mode
+     */
     private void setMode(int mode) {
     	String sortOrder;
     	switch (mode) {
@@ -544,16 +604,31 @@ public class Trolly extends ListActivity {
     			values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
     			getContentResolver().insert(getIntent().getData(), values);
     		} else {
-        	//If there is a list item that matches change its status to "on list"
-    			c.moveToFirst();
-    	    	ContentValues values = new ContentValues();
-    			values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
-    			id = c.getLong(c.getColumnIndex(ShoppingList._ID));
-				uri = ContentUris.withAppendedId(getIntent().getData(), id);
-				getContentResolver().update(uri, values, null, null);
+        	//If there is a list item that matches this item...
+    			//get status of existing item
+    			int status = c.getInt(c.getColumnIndex(ShoppingList.STATUS));
+    			if (status == ShoppingList.OFF_LIST) {
+        			//move an existing "off list" item to "on list"
+        	    	ContentValues values = new ContentValues();
+        			values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+        			id = c.getLong(c.getColumnIndex(ShoppingList._ID));
+    				uri = ContentUris.withAppendedId(getIntent().getData(), id);
+    				getContentResolver().update(uri, values, null, null);    				
+    			} else { 
+    				/**If an existing item already has a status of "on list" 
+    				 * then create a new (duplicate) item with "on list" status.
+    				 * This allows for the case where an item is already on the list
+    				 * but is added again from another source.
+    				 */
+    				ContentValues values = new ContentValues();
+        			values.put(ShoppingList.ITEM, item);
+        			values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+        			getContentResolver().insert(getIntent().getData(), values);
+    			}
     		}    		
     	}
     }
+
 }
 
 
