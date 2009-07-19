@@ -8,16 +8,16 @@
             android:authorities="caldwell.ben.provider.Trolly"
         />
         <activity android:name=".Trolly"
-                  android:label="@string/app_name">
+        		android:icon="@drawable/icon_48"
+                android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.INSERT" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="org.openintents.action.INSERT_FROM_EXTRAS" />
                 <category android:name="android.intent.category.ALTERNATIVE" />
-                <data android:mimeType="vnd.android.cursor.dir/vnd.caldwell.ben.trolly" />
+                <data android:mimeType="org.openintents.type/string.arraylist.shopping" />
             </intent-filter>
         </activity>
         <activity android:name=".TrollyPreferences"
