@@ -215,8 +215,8 @@ public class Trolly extends ListActivity {
 			}
         });
         
-        if (intent.hasExtra(KEY_ITEM))
-        	addIntentItems();
+        if (intent.hasExtra(org.openintents.intents.ShoppingListIntents.EXTRA_STRING_ARRAYLIST_SHOPPING))
+        	addExtraItems();
     }
     
 	@Override
@@ -584,8 +584,8 @@ public class Trolly extends ListActivity {
     /**
      * Add items received as extras in the intent to the list
      */
-    private void addIntentItems() {
-    	ArrayList<String> list = getIntent().getStringArrayListExtra(KEY_ITEM);
+    private void addExtraItems() {
+    	ArrayList<String> list = getIntent().getStringArrayListExtra(org.openintents.intents.ShoppingListIntents.EXTRA_STRING_ARRAYLIST_SHOPPING);
     	Cursor c;
     	long id;
     	Uri uri;
