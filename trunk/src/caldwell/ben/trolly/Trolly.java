@@ -203,15 +203,13 @@ public class Trolly extends ListActivity {
         
         btn_listMode.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				mMode = MODE_LISTING;
-				setMode(mMode);
+				setMode(MODE_LISTING);
 			}
         });
         
         btn_shopMode.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				mMode = MODE_SHOPPING;
-				setMode(mMode);
+				setMode(MODE_SHOPPING);
 			}
         });
         
@@ -249,8 +247,13 @@ public class Trolly extends ListActivity {
 			getContentResolver().update(uri, values, null, null);
 			break;
 		case ShoppingList.ON_LIST:
-			//move from on the list to in the trolley
-			values.put(ShoppingList.STATUS, ShoppingList.IN_TROLLEY);
+			if (mMode == MODE_SHOPPING) {
+				//move from on the list to in the trolley
+				values.put(ShoppingList.STATUS, ShoppingList.IN_TROLLEY);
+			} else if(mMode == MODE_LISTING) {
+				//move from on the list to off list
+				values.put(ShoppingList.STATUS, ShoppingList.OFF_LIST);
+			}
 			getContentResolver().update(uri, values, null, null);
 			break;
 		case ShoppingList.IN_TROLLEY:
@@ -533,6 +536,7 @@ public class Trolly extends ListActivity {
      */
     private void setMode(int mode) {
     	String sortOrder;
+    	mMode = mode;
     	switch (mode) {
 	    	case MODE_SHOPPING:
 	    		btn_shopMode.setTextColor(getResources().getColor(R.color.red_text));
@@ -560,7 +564,7 @@ public class Trolly extends ListActivity {
 	    		btn_listMode.setTextColor(getResources().getColor(R.color.red_text));
 				btn_shopMode.setTextColor(getResources().getColor(R.color.gray_text));
 				icon_mode.setImageResource(R.drawable.list_mode);
-				sortOrder = mPrefs.getString(getString(R.string.key_sort_list), ShoppingList.MODIFIED_DATE + " DESC");
+				sortOrder = mPrefs.getString(getString(R.string.key_sort_list), ShoppingList.DEFAULT_SORT_ORDER);
 				try {
 					mCursor = managedQuery(getIntent().getData(), 
 											PROJECTION, 
