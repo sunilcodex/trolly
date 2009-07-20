@@ -3,6 +3,9 @@
 
 = Trolly News =
 ----
+_20/7/09_ * Version 1.1 released to Android Market *
+Release 1.1 adds a few new features to make Trolly even easier to use. The list can now be completely cleared or reset. After some collaboration with the guys at openintents Trolly implements what may become a standard interface for auto adding items to a shopping list from other apps.
+----
 _6/7/09_ * Version 1.0 released to Android Market! *
 Trolly Version 1.0 has been released with great excitement to the Android Market. 
 Trolly is * available for free * so please try it out and let me know via comments here what you love and what you broke!
