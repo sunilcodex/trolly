@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, Trolly!</string>
     <string name="app_name">Trolly</string>
+	<string name="shopping_button">Compras</string>
+    <string name="listing_button">Lista</string>
+    <string name="empty_list">Lista está vacía</string>
     
     <string name="insert_item">Insertar el artículo</string>
     <string name="checkout">Checkout</string>
