@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, Trolly!</string>
+    <string name="app_name">Trolly</string>
+    
+    <string name="insert_item">Insertar el artículo</string>
+    <string name="checkout">Checkout</string>
+    <string name="dialog_insert_hint">artículo</string>
+    <string name="dialog_ok">Aceptar</string>
+    <string name="dialog_cancel">Cancelar</string>
+    
+    <string name="delete_item">Borrar</string>
+    <string name="edit_item">Editar</string>
+    <string name="move_on_list">En la lista</string>
+    <string name="move_off_list">Fuera de la lista</string>
+    <string name="move_in_trolley">En carro</string>
+    
+    <string name="key_sort_list">modo de lista de orden</string>
+    <string name="key_sort_shop">modo de compra de orden</string>
+    
+    <string name="preferences">Preferencias</string>
+    <string name="clear_list">Borrar lista</string>
+    <string name="clear_prompt">eliminar todos los artículos de la lista?</string>
+    <string name="reset_list">Restablecimiento de la lista</string>
+    <string name="reset_prompt">Suprimir permanentemente todos los artículos de la lista?</string>
+    
+</resources>
