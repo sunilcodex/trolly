@@ -33,7 +33,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.net.Uri;
@@ -44,12 +43,14 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.AdapterView;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.CursorAdapter;
 import android.widget.EditText;
 import android.widget.Filterable;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -58,7 +59,6 @@ public class Trolly extends ListActivity {
 	
 //	private static final String TAG = "Trolly";
 	
-	private static final String KEY_MODE = "mode";
 	public static final String KEY_ITEM = "items";
 	
 	/**
@@ -67,7 +67,7 @@ public class Trolly extends ListActivity {
 	 * @author Ben
 	 *
 	 */
-	private class TrollyAdapter extends SimpleCursorAdapter implements Filterable {
+	private static class TrollyAdapter extends SimpleCursorAdapter implements Filterable {
 
 		private ContentResolver mContent;   
 		
@@ -117,8 +117,69 @@ public class Trolly extends ListActivity {
 				break;
 			}
 		}
+
+		@Override
+		public CharSequence convertToString(Cursor cursor) {
+			return cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM));
+		}
+		
 	}
 	
+	/**
+	 * AutoFillAdapter is an adapter for the AutoCompleteTextView at the top of the Trolly Activity
+	 * @author Ben Caldwel
+	 *
+	 */
+	private static class AutoFillAdapter extends CursorAdapter implements Filterable {
+
+		private ContentResolver mContent;
+		
+		public AutoFillAdapter(Context context, Cursor c) {
+			super(context, c);
+			mContent = context.getContentResolver();
+		}
+
+		@Override
+		public void bindView(View view, Context context, Cursor cursor) {
+			((TextView) view).setText(cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM)));
+		}
+
+		@Override
+		public View newView(Context context, Cursor cursor, ViewGroup parent) {
+			final LayoutInflater inflater = LayoutInflater.from(context);
+			final TextView view = (TextView)inflater.inflate(
+												android.R.layout.simple_dropdown_item_1line, 
+												parent,false);
+			view.setText(cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM)));
+			return view;
+		}
+
+		@Override
+		public CharSequence convertToString(Cursor cursor) {
+			return cursor.getString(cursor.getColumnIndex(ShoppingList.ITEM)); 
+		}
+
+		@Override
+		public Cursor runQueryOnBackgroundThread(CharSequence constraint) {
+			if (getFilterQueryProvider() != null) {
+                return getFilterQueryProvider().runQuery(constraint);
+            }
+
+            StringBuilder buffer = null;
+            String[] args = null;
+            if (constraint != null) {
+                buffer = new StringBuilder();
+                buffer.append("UPPER(");
+                buffer.append(ShoppingList.ITEM);
+                buffer.append(") GLOB ?");
+                args = new String[] { "*" + constraint.toString().toUpperCase() + "*" };
+            }
+
+            return mContent.query(ShoppingList.CONTENT_URI, PROJECTION,
+                    buffer == null ? null : buffer.toString(), args,
+                    null);
+		}
+	}
 	/**
      * The columns we are interested in from the database
      */
@@ -143,28 +204,21 @@ public class Trolly extends ListActivity {
     /**
      * Case selections for the type of dialog box displayed
      */
-    private static final int DIALOG_INSERT = 1;
-    private static final int DIALOG_DELETE = 2;
-    private static final int DIALOG_EDIT = 3;
-    private static final int DIALOG_CLEAR = 4;
-    private static final int DIALOG_RESET = 5;
-    
-    //Modes
-    private static final int MODE_LISTING = 1;
-    private static final int MODE_SHOPPING = 2;
-    
+    private static final int DIALOG_DELETE = 1;
+    private static final int DIALOG_EDIT = 2;
+    private static final int DIALOG_CLEAR = 3;
+    private static final int DIALOG_RESET = 4;
+       
   //Use private members for dialog textview to prevent weird persistence problem
 	private EditText mDialogEdit;
 	private TextView mDialogText;
 	private View mDialogView;
 
 	private Cursor mCursor;
-	private Button btn_listMode;
-	private Button btn_shopMode;
-	private ImageView icon_mode;
+	private AutoCompleteTextView mTextBox;
+	private Button btnAdd;
 	private TrollyAdapter mAdapter;
 	private SharedPreferences mPrefs;
-	private int mMode;
 
 	private Uri mUri;
 	
@@ -185,33 +239,49 @@ public class Trolly extends ListActivity {
         // Inform the list we provide context menus for items
         getListView().setOnCreateContextMenuListener(this);
                
-        mCursor = managedQuery(getIntent().getData(), PROJECTION, null, null,
-                ShoppingList.DEFAULT_SORT_ORDER);
+        mCursor = managedQuery(getIntent().getData(), 
+        						PROJECTION, 
+        						ShoppingList.STATUS+"<>"+ShoppingList.OFF_LIST, 
+        						null,
+        						ShoppingList.DEFAULT_SORT_ORDER);
 
         mAdapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
                 new String[] { ShoppingList.ITEM}, new int[] { R.id.item});
         setListAdapter(mAdapter);
               
-        btn_listMode = (Button)findViewById(R.id.listing_mode);
-        btn_shopMode = (Button)findViewById(R.id.shopping_mode);
-        icon_mode = (ImageView)findViewById(R.id.icon_mode);
+        mTextBox = (AutoCompleteTextView)findViewById(R.id.textbox);
+        btnAdd = (Button)findViewById(R.id.btn_add);
         
+        btnAdd.setOnClickListener(new Button.OnClickListener(){
+			@Override
+			public void onClick(View view) {
+				//If there is a string in the textbox then add it to the list
+				if (mTextBox.getText().length()>0) {
+					Cursor c = getContentResolver().query(getIntent().getData(), 
+							PROJECTION, 
+							ShoppingList.ITEM+"='"+mTextBox.getText()+"'", 
+							null, 
+							null);
+					c.moveToFirst();
+					if (c == null 
+							|| c.isBeforeFirst() 
+							|| c.getInt(c.getColumnIndex(ShoppingList.STATUS))==ShoppingList.ON_LIST) {
+						ContentValues values = new ContentValues();
+						values.put(ShoppingList.ITEM, mTextBox.getText().toString());
+						getContentResolver().insert(ShoppingList.CONTENT_URI,values);
+					} else {
+						ContentValues values = new ContentValues();
+						values.put(ShoppingList.STATUS, ShoppingList.ON_LIST);
+						long id = c.getLong(c.getColumnIndex(ShoppingList._ID));
+						Uri uri = ContentUris.withAppendedId(getIntent().getData(), id);
+						getContentResolver().update(uri, values, null, null);
+					}
+	        		mTextBox.setText("");
+				}
+			}
+        });
         //mPrefs = getSharedPreferences(null, MODE_PRIVATE);
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-        mMode = mPrefs.getInt(KEY_MODE, MODE_LISTING);
-        setMode(mMode);
-        
-        btn_listMode.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				setMode(MODE_LISTING);
-			}
-        });
-        
-        btn_shopMode.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				setMode(MODE_SHOPPING);
-			}
-        });
         
         if (intent.hasExtra(org.openintents.intents.ShoppingListIntents.EXTRA_STRING_ARRAYLIST_SHOPPING))
         	addExtraItems();
@@ -220,15 +290,33 @@ public class Trolly extends ListActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		mMode = mPrefs.getInt(KEY_MODE, MODE_LISTING);
-        setMode(mMode);
+		
+		//set up the list cursor
+        mCursor = managedQuery(getIntent().getData(), 
+				PROJECTION, 
+				ShoppingList.STATUS+"<>"+ShoppingList.OFF_LIST, 
+				null,
+				ShoppingList.DEFAULT_SORT_ORDER);
+
+        //set the list adapter
+		mAdapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
+		new String[] { ShoppingList.ITEM}, new int[] { R.id.item});
+		setListAdapter(mAdapter);
+		
+		Cursor cAutoFill = managedQuery(getIntent().getData(), 
+				PROJECTION, 
+				null, 
+				null,
+				ShoppingList.DEFAULT_SORT_ORDER);
+		
+		AutoFillAdapter autoFillAdapter = new AutoFillAdapter(this, cAutoFill);
+		mTextBox.setAdapter(autoFillAdapter);
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		SharedPreferences.Editor ed = mPrefs.edit();
-		ed.putInt(KEY_MODE, mMode);
 		ed.commit();
 	}
 
@@ -247,13 +335,7 @@ public class Trolly extends ListActivity {
 			getContentResolver().update(uri, values, null, null);
 			break;
 		case ShoppingList.ON_LIST:
-			if (mMode == MODE_SHOPPING) {
-				//move from on the list to in the trolley
-				values.put(ShoppingList.STATUS, ShoppingList.IN_TROLLEY);
-			} else if(mMode == MODE_LISTING) {
-				//move from on the list to off list
-				values.put(ShoppingList.STATUS, ShoppingList.OFF_LIST);
-			}
+			values.put(ShoppingList.STATUS, ShoppingList.IN_TROLLEY);
 			getContentResolver().update(uri, values, null, null);
 			break;
 		case ShoppingList.IN_TROLLEY:
@@ -358,8 +440,6 @@ public class Trolly extends ListActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
-		menu.add(0, MENU_ITEM_INSERT, 1, R.string.insert_item)
-        .setIcon(android.R.drawable.ic_menu_add);
 		menu.add(0, MENU_ITEM_CHECKOUT, 2, R.string.checkout)
         .setIcon(android.R.drawable.ic_media_next);
 		menu.add(0, MENU_ITEM_CLEAR, 3, R.string.clear_list)
@@ -374,11 +454,6 @@ public class Trolly extends ListActivity {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
-        case MENU_ITEM_INSERT:
-            // open dialog to insert a new item
-        	showDialog(DIALOG_INSERT);
-        	mDialogEdit.setText("");
-            return true;
         case MENU_ITEM_CHECKOUT:
         	//Change all items from in trolley to off list
         	checkout();
@@ -404,26 +479,6 @@ public class Trolly extends ListActivity {
 	protected Dialog onCreateDialog(int id) {
 		LayoutInflater factory = LayoutInflater.from(this);
 		switch (id) {
-		case DIALOG_INSERT:
-            mDialogView = factory.inflate(R.layout.dialog_insert, null);
-            mDialogEdit = (EditText)mDialogView.findViewById(R.id.insert);
-            return new AlertDialog.Builder(this)
-                .setTitle(R.string.insert_item)
-                .setView(mDialogView)
-                .setPositiveButton(R.string.dialog_ok, new DialogInterface.OnClickListener() {
-                	public void onClick(DialogInterface dialog, int whichButton) {
-                    	/* User clicked OK so do some stuff */
-                		ContentValues values = new ContentValues();
-                        values.put(ShoppingList.ITEM, mDialogEdit.getText().toString());
-                		getContentResolver().insert(ShoppingList.CONTENT_URI,values);
-                	}
-                })
-                .setNegativeButton(R.string.dialog_cancel, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        /* User clicked cancel so do some stuff */
-                    }
-                })
-                .create();
 		case DIALOG_EDIT:
             mDialogView = factory.inflate(R.layout.dialog_edit, null);
             mDialogEdit = (EditText)mDialogView.findViewById(R.id.edit);
@@ -531,61 +586,6 @@ public class Trolly extends ListActivity {
     }
     
     /**
-     * Change the mode between shopping and list mode
-     * @param mode
-     */
-    private void setMode(int mode) {
-    	String sortOrder;
-    	mMode = mode;
-    	switch (mode) {
-	    	case MODE_SHOPPING:
-	    		btn_shopMode.setTextColor(getResources().getColor(R.color.red_text));
-				btn_listMode.setTextColor(getResources().getColor(R.color.gray_text));
-				icon_mode.setImageResource(R.drawable.shop_mode);
-				try {
-					sortOrder = mPrefs.getString(getString(R.string.key_sort_shop), ShoppingList.DEFAULT_SORT_ORDER);
-					mCursor = managedQuery(getIntent().getData(), 
-											PROJECTION, 
-											ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
-											null,
-											sortOrder);
-					mAdapter.changeCursor(mCursor);
-				}catch (SQLException e) {
-					//Try a safer SQL query  
-					mCursor = managedQuery(getIntent().getData(), 
-							PROJECTION, 
-							ShoppingList.STATUS + "<>" + ShoppingList.OFF_LIST, 
-							null,
-							ShoppingList.DEFAULT_SORT_ORDER);
-					mAdapter.changeCursor(mCursor);
-				}
-				break;
-	    	case MODE_LISTING:
-	    		btn_listMode.setTextColor(getResources().getColor(R.color.red_text));
-				btn_shopMode.setTextColor(getResources().getColor(R.color.gray_text));
-				icon_mode.setImageResource(R.drawable.list_mode);
-				sortOrder = mPrefs.getString(getString(R.string.key_sort_list), ShoppingList.DEFAULT_SORT_ORDER);
-				try {
-					mCursor = managedQuery(getIntent().getData(), 
-											PROJECTION, 
-											null, 
-											null,
-											sortOrder);
-					mAdapter.changeCursor(mCursor);
-				} catch (SQLException e) {
-					//Try a safer SQL query
-					mCursor = managedQuery(getIntent().getData(), 
-							PROJECTION, 
-							null, 
-							null,
-							ShoppingList.DEFAULT_SORT_ORDER);
-					mAdapter.changeCursor(mCursor);
-				}
-	    		break;
-    	}
-    }
-    
-    /**
      * Add items received as extras in the intent to the list
      */
     private void addExtraItems() {
@@ -632,7 +632,6 @@ public class Trolly extends ListActivity {
     		}    		
     	}
     }
-
 }
 
 

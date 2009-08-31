@@ -5,9 +5,9 @@
     <string name="listing_button">Listing</string>
     <string name="empty_list">Empty list</string>
     
-    <string name="insert_item">Insert item</string>
+    <string name="add">Add</string>
+    <string name="add_hint">Add an item</string>
     <string name="checkout">Checkout</string>
-    <string name="dialog_insert_hint">item</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
     
