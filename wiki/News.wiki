@@ -5,6 +5,12 @@
 
 ----
 
+_2/9/09_ * Version 1.3 released to Android Market *
+
+Big change to the UI in version 1.3 - the modes have been removed entirely and replaced with a single autocomplete text box. This version should be much faster and easier to use!
+
+----
+
 _21/7/09_ * Version 1.2 released to Android Market *
 
 Trolly v1.2 includes an update to the openintents interface for auto adding items from other applications. Thanks to Peli from [http://www.openintents.org/en/ OpenIntents] for submitting patches and feedback!
