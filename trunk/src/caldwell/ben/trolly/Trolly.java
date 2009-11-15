@@ -60,6 +60,7 @@ public class Trolly extends ListActivity {
 //	private static final String TAG = "Trolly";
 	
 	public static final String KEY_ITEM = "items";
+	public static boolean adding = false;
 	
 	/**
 	 * TrollyAdapter allows crossing items off the list and filtering
@@ -239,19 +240,23 @@ public class Trolly extends ListActivity {
         // Inform the list we provide context menus for items
         getListView().setOnCreateContextMenuListener(this);
                
-        mCursor = managedQuery(getIntent().getData(), 
-        						PROJECTION, 
-        						ShoppingList.STATUS+"<>"+ShoppingList.OFF_LIST, 
-        						null,
-        						ShoppingList.DEFAULT_SORT_ORDER);
-
-        mAdapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
-                new String[] { ShoppingList.ITEM}, new int[] { R.id.item});
-        setListAdapter(mAdapter);
+	adding = false;
+	updateList();
               
         mTextBox = (AutoCompleteTextView)findViewById(R.id.textbox);
         btnAdd = (Button)findViewById(R.id.btn_add);
         
+        mTextBox.setOnClickListener(new Button.OnClickListener(){
+			@Override
+			public void onClick(View view) {
+				//If the text box is clicked while full-list adding, stop adding
+				if (adding) {
+					adding = false;
+					updateList();
+				}
+			}
+	});
+
         btnAdd.setOnClickListener(new Button.OnClickListener(){
 			@Override
 			public void onClick(View view) {
@@ -277,6 +282,9 @@ public class Trolly extends ListActivity {
 						getContentResolver().update(uri, values, null, null);
 					}
 	        		mTextBox.setText("");
+				} else {
+					adding = !adding;
+					updateList();
 				}
 			}
         });
@@ -287,14 +295,11 @@ public class Trolly extends ListActivity {
         	addExtraItems();
     }
     
-	@Override
-	protected void onResume() {
-		super.onResume();
-		
-		//set up the list cursor
-        mCursor = managedQuery(getIntent().getData(), 
+	protected void updateList() {
+        //set up the list cursor
+	        mCursor = managedQuery(getIntent().getData(), 
 				PROJECTION, 
-				ShoppingList.STATUS+"<>"+ShoppingList.OFF_LIST, 
+				adding ? null: ShoppingList.STATUS+"<>"+ShoppingList.OFF_LIST,
 				null,
 				ShoppingList.DEFAULT_SORT_ORDER);
 
@@ -302,6 +307,14 @@ public class Trolly extends ListActivity {
 		mAdapter = new TrollyAdapter(this, R.layout.shoppinglist_item, mCursor,
 		new String[] { ShoppingList.ITEM}, new int[] { R.id.item});
 		setListAdapter(mAdapter);
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		adding = false;
+		updateList();
 		
 		Cursor cAutoFill = managedQuery(getIntent().getData(), 
 				PROJECTION, 
@@ -344,7 +357,10 @@ public class Trolly extends ListActivity {
 			getContentResolver().update(uri, values, null, null);
 			break;
 		}
-		
+		if (adding) {
+			adding = false;				
+			updateList();
+		}		
 	}
 
 	@Override
