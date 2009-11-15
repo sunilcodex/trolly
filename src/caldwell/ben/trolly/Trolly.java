@@ -596,6 +596,13 @@ public class Trolly extends ListActivity {
 	    		uri = ContentUris.withAppendedId(getIntent().getData(), id);
 	    		//Update the status of this item (in trolley) to "off list"
 	    		getContentResolver().update(uri, values, null, null);
+	    		//Cleanup the list by deleting double up items that have been checked out
+	    		getContentResolver().delete(getIntent().getData(),
+	    										ShoppingList.ITEM + "='" 
+	    										+ c.getString(c.getColumnIndex(ShoppingList.ITEM)) 
+	    										+ "' AND " + ShoppingList._ID + "<>" + id
+	    										+ " AND " + ShoppingList.STATUS + "=" + ShoppingList.OFF_LIST, 
+	    										null);
     		}
 	    	c.moveToNext();
     	}
