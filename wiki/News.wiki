@@ -5,6 +5,12 @@
 
 ----
 
+_21/1/10_ * Version 1.4 released to Android Market *
+
+Bug fixes and UI improvements in version 1.4 - The layout is now locked in portrait mode to prevent annoying changes while shopping. Thanks to Steaphan Greene for contributions to improve the suggestion and adding functionality. 
+
+----
+
 _2/9/09_ * Version 1.3 released to Android Market *
 
 Big change to the UI in version 1.3 - the modes have been removed entirely and replaced with a single autocomplete text box. This version should be much faster and easier to use!
